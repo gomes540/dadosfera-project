@@ -1,3 +1,4 @@
+from calendar import weekday
 import glob
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -84,3 +85,28 @@ q04.set(xlabel='Pickup Date', ylabel='Tip Amount ($)')
 q04.set_title('Tips per day in the last 3 months of 2012')
 plt.xticks(rotation=80)
 plt.savefig("answer/q04/tips_per_day_in_the_last_3_months_of_2012.png")
+
+# Questão Bônus 01: Qual o tempo médio das corridas nos dias de sábado e domingo?
+weekday_trips_dataframe = trips_dataframe.copy()
+weekday_trips_dataframe['weekday'] = trips_dataframe['pickup_datetime'].dt.dayofweek
+weekday_trips_dataframe['trip_hours'] = weekday_trips_dataframe["dropoff_datetime"] - weekday_trips_dataframe["pickup_datetime"]
+sat_and_sun_trips_dataframe = weekday_trips_dataframe[(weekday_trips_dataframe['weekday'] == 5) | (weekday_trips_dataframe['weekday'] == 6)]
+grouped_sat_and_sun_trips_dataframe = sat_and_sun_trips_dataframe.groupby("weekday", as_index=False)['trip_hours'].mean()
+grouped_sat_and_sun_trips_dataframe.loc[grouped_sat_and_sun_trips_dataframe['weekday'] == 5, 'weekday'] = "saturday"
+grouped_sat_and_sun_trips_dataframe.loc[grouped_sat_and_sun_trips_dataframe['weekday'] == 6, 'weekday'] = "sunday"
+grouped_sat_and_sun_trips_dataframe['trip_hours'] = grouped_sat_and_sun_trips_dataframe['trip_hours'].dt.components.seconds
+print("---"*50)
+print(grouped_sat_and_sun_trips_dataframe.head())
+print(grouped_sat_and_sun_trips_dataframe.dtypes)
+
+plt.clf()
+sns.set(rc={"figure.figsize": (15.7, 11.7)})
+sns.set(font_scale=1)
+b01 = sns.barplot(data=grouped_sat_and_sun_trips_dataframe, x="weekday", y="trip_hours")
+b01.set(xlabel='Weekday', ylabel='Avarege trip duration (seconds)')
+b01.set_title('Avarege trip duration in Saturday and Sunday')
+plt.savefig("answer/b01/avarege_trip_hours_in_saturday_and_sunday.png")
+
+print(grouped_sat_and_sun_trips_dataframe["trip_hours"])
+
+
