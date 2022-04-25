@@ -1,4 +1,3 @@
-from calendar import weekday
 import glob
 import matplotlib.pyplot as plt
 import pandas as pd
