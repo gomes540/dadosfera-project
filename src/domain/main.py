@@ -24,9 +24,11 @@ trips_dataframe["payment_type"] = trips_dataframe["payment_type"].str.lower()
 avg_distance_for_less_then_2_passenger = trips_dataframe[
     trips_dataframe["passenger_count"] <= DataFilter.PASSENGER_FILTER.value]["trip_distance"].mean()
 
+print('------------------------ Q01 -------------------------')
 print(
     f"Distância média percorrida por viagens com no máximo 2 passageiros: {round(avg_distance_for_less_then_2_passenger, 2)} metros \n"
 )
+print('-'*50)
 
 # Questão 02: Quais os 3 maiores vendors em quantidade total de dinheiro arrecadado
 
@@ -38,8 +40,10 @@ top_3_vendors = (
 
 top_3_vendors['total_amount'] = top_3_vendors['total_amount'] / 1000000
 
+print('------------------------ Q02 -------------------------')
 print("Top 3 vendors que mais arrecadaram: \n")
 print(top_3_vendors.head())
+print('-'*50)
 
 q02 = sns.barplot(data=top_3_vendors, x="vendor_id", y="total_amount")
 q02.set(xlabel='Vendors', ylabel='Total Million Amount ($)')
@@ -95,9 +99,10 @@ grouped_sat_and_sun_trips_dataframe = sat_and_sun_trips_dataframe.groupby("weekd
 grouped_sat_and_sun_trips_dataframe.loc[grouped_sat_and_sun_trips_dataframe['weekday'] == 5, 'weekday'] = "saturday"
 grouped_sat_and_sun_trips_dataframe.loc[grouped_sat_and_sun_trips_dataframe['weekday'] == 6, 'weekday'] = "sunday"
 grouped_sat_and_sun_trips_dataframe['trip_hours'] = grouped_sat_and_sun_trips_dataframe['trip_hours'].dt.components.seconds
-print("---"*50)
+
+print("---------------- B01 ----------------")
 print(grouped_sat_and_sun_trips_dataframe.head())
-print(grouped_sat_and_sun_trips_dataframe.dtypes)
+print('-'*50)
 
 plt.clf()
 sns.set(rc={"figure.figsize": (15.7, 11.7)})
@@ -106,7 +111,3 @@ b01 = sns.barplot(data=grouped_sat_and_sun_trips_dataframe, x="weekday", y="trip
 b01.set(xlabel='Weekday', ylabel='Avarege trip duration (seconds)')
 b01.set_title('Avarege trip duration in Saturday and Sunday')
 plt.savefig("answer/b01/avarege_trip_hours_in_saturday_and_sunday.png")
-
-print(grouped_sat_and_sun_trips_dataframe["trip_hours"])
-
-
