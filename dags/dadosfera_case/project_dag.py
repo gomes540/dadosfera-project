@@ -39,11 +39,6 @@ LANDING_BUCKET_ZONE = Variable.get("dadosfera_landing_zone_bucket")
 PROCESSING_BUCKET_ZONE = Variable.get("dadosfera_processing_zone_bucket")
 CURATED_BUCKET_ZONE = Variable.get("dadosfera_curated_zone_bucket")
 BUCKET_LOCATION = Variable.get("dadosfera_bucket_location")
-data_lake_bucket = Variable.get("dadosfera_curated_zone_bucket")
-data_lake_bucket = Variable.get("dadosfera_curated_zone_bucket")
-data_lake_bucket = Variable.get("dadosfera_curated_zone_bucket")
-data_lake_bucket = Variable.get("dadosfera_curated_zone_bucket")
-data_lake_bucket = Variable.get("dadosfera_curated_zone_bucket")
 # [END import variables]
 
 
