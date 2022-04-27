@@ -68,7 +68,6 @@ with DAG(
     
     # create gcp bucket to dadosfera landing zone - dadosfera-landing-zone
     # https://airflow.apache.org/docs/apache-airflow-providers-google/stable/_modules/airflow/providers/google/cloud/operators/gcs.html
-    
     create_gcs_dadosfera_landing_zone = GoogleCloudStorageCreateBucketOperator(
         task_id="create_gcs_dadosfera_landing_zone_bucket",
         bucket_name=LANDING_BUCKET_ZONE,
@@ -80,7 +79,6 @@ with DAG(
     
     # create gcp bucket to dadosfera processing zone - dadosfera-processing-zone
     # https://airflow.apache.org/docs/apache-airflow-providers-google/stable/_modules/airflow/providers/google/cloud/operators/gcs.html
-    
     create_gcs_dadosfera_processing_zone = GoogleCloudStorageCreateBucketOperator(
         task_id="create_gcs_dadosfera_processing_zone_bucket",
         bucket_name=PROCESSING_BUCKET_ZONE,
@@ -92,7 +90,6 @@ with DAG(
     
     # create gcp bucket to dadosfera curated zone - dadosfera-curated-zone
     # https://airflow.apache.org/docs/apache-airflow-providers-google/stable/_modules/airflow/providers/google/cloud/operators/gcs.html
-    
     create_gcs_dadosfera_curated_zone = GoogleCloudStorageCreateBucketOperator(
         task_id="create_gcs_dadosfera_curated_zone_bucket",
         bucket_name=CURATED_BUCKET_ZONE,
