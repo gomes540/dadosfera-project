@@ -17,14 +17,12 @@
 
 
 # [START import module]
-from asyncio import tasks
 from airflow import DAG
 from datetime import datetime
 from airflow.models import Variable
 from airflow.operators.python import PythonOperator
 from airflow.contrib.operators.gcs_operator import GoogleCloudStorageCreateBucketOperator
-from airflow.providers.google.cloud.transfers.gcs_to_gcs import GCSToGCSOperator
-from airflow.providers.google.cloud.operators.gcs import GCSBucketCreateAclEntryOperator, GCSSynchronizeBucketsOperator, GCSListObjectsOperator, GCSDeleteBucketOperator
+from airflow.providers.google.cloud.operators.gcs import GCSSynchronizeBucketsOperator, GCSListObjectsOperator, GCSDeleteBucketOperator
 from airflow.providers.google.cloud.operators.dataproc import DataprocCreateClusterOperator, DataprocSubmitPySparkJobOperator, DataprocDeleteClusterOperator
 from airflow.providers.google.cloud.sensors.dataproc import DataprocJobSensor
 from airflow.providers.google.cloud.operators.bigquery import BigQueryCreateEmptyDatasetOperator, BigQueryCheckOperator
