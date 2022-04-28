@@ -36,6 +36,7 @@ from dadosfera_case.gcs_loader import upload_trips_files_to_gcs
 LANDING_BUCKET_ZONE = Variable.get("dadosfera_landing_zone_bucket")
 PROCESSING_BUCKET_ZONE = Variable.get("dadosfera_processing_zone_bucket")
 CURATED_BUCKET_ZONE = Variable.get("dadosfera_curated_zone_bucket")
+DADOSFERA_CODE_REPOSITORY = Variable.get("dadosfera_code_repository")
 BUCKET_LOCATION = Variable.get("dadosfera_bucket_location")
 DATAPROC_CLUSTER_LOCATION = Variable.get("dataproc_cluster_location")
 # [END import variables]
@@ -94,6 +95,17 @@ with DAG(
     create_gcs_dadosfera_curated_zone = GoogleCloudStorageCreateBucketOperator(
         task_id="create_gcs_dadosfera_curated_zone_bucket",
         bucket_name=CURATED_BUCKET_ZONE,
+        storage_class='STANDARD',
+        location=BUCKET_LOCATION,
+        labels={'env': 'dev', 'team': 'airflow'},
+        gcp_conn_id="gcp_dadosfera"
+    )
+    
+    # create gcp bucket to dadosfera code  - dadosfera-code-repository
+    # https://airflow.apache.org/docs/apache-airflow-providers-google/stable/_modules/airflow/providers/google/cloud/operators/gcs.html
+    create_gcs_dadosfera_code_repository = GoogleCloudStorageCreateBucketOperator(
+        task_id="create_gcs_dadosfera_code_repository",
+        bucket_name=DADOSFERA_CODE_REPOSITORY,
         storage_class='STANDARD',
         location=BUCKET_LOCATION,
         labels={'env': 'dev', 'team': 'airflow'},
@@ -168,5 +180,5 @@ with DAG(
 # [END set tasks]
 
 # [START task sequence]
-start >> [create_gcs_dadosfera_landing_zone, create_gcs_dadosfera_processing_zone, create_gcs_dadosfera_curated_zone] >> upload_local_file >> gcs_sync_trips_landing_to_processing_zone >> [list_files_landing_zone, list_files_processing_zone] >> create_dataproc_cluster >> end
+start >> [create_gcs_dadosfera_landing_zone, create_gcs_dadosfera_processing_zone, create_gcs_dadosfera_curated_zone, create_gcs_dadosfera_code_repository] >> upload_local_file >> gcs_sync_trips_landing_to_processing_zone >> [list_files_landing_zone, list_files_processing_zone] >> create_dataproc_cluster >> end
 # [END task sequence]
