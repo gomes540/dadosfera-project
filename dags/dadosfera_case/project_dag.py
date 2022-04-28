@@ -37,6 +37,7 @@ LANDING_BUCKET_ZONE = Variable.get("dadosfera_landing_zone_bucket")
 PROCESSING_BUCKET_ZONE = Variable.get("dadosfera_processing_zone_bucket")
 CURATED_BUCKET_ZONE = Variable.get("dadosfera_curated_zone_bucket")
 BUCKET_LOCATION = Variable.get("dadosfera_bucket_location")
+DATAPROC_CLUSTER_LOCATION = Variable.get("dataproc_cluster_location")
 # [END import variables]
 
 
@@ -112,6 +113,7 @@ with DAG(
         }
     )
     # sync files from one bucket to another bucket - dadosfera-landing-zone to dadosfera-processing-zone
+    # https://registry.astronomer.io/providers/google/modules/gcssynchronizebucketsoperator
     gcs_sync_trips_landing_to_processing_zone = GCSSynchronizeBucketsOperator(
         task_id="gcs_sync_trips_landing_to_processing_zone",
         source_bucket=LANDING_BUCKET_ZONE,
@@ -137,9 +139,34 @@ with DAG(
         bucket=LANDING_BUCKET_ZONE,
         gcp_conn_id="gcp_dadosfera"
     )
+    
+    # Create google dataproc cluster - [spark engine]
+    # https://registry.astronomer.io/providers/google/modules/dataproccreateclusteroperator
+    dataproc_cluster_config_dadosfera = {
+        "master_config": {
+            "num_instances": 1,
+            "machine_type_uri": "n1-standard-2",
+            "disk_config": {"boot_disk_type": "pd-standard", "boot_disk_size_gb": 50},
+        },
+        "worker_config": {
+            "num_instances": 2,
+            "machine_type_uri": "n1-standard-2",
+            "disk_config": {"boot_disk_type": "pd-standard", "boot_disk_size_gb": 50},
+        },
+    }
+    
+    create_dataproc_cluster = DataprocCreateClusterOperator(
+        task_id="create_dataproc_clusuter",
+        cluster_name="dadosfera-spark-dp-cluser",
+        cluster_config=dataproc_cluster_config_dadosfera,
+        region='us-central1',
+        use_if_exists=True,
+        gcp_conn_id="gcp_dadosfera"
+    )
+    
 
 # [END set tasks]
 
 # [START task sequence]
-start >> [create_gcs_dadosfera_landing_zone, create_gcs_dadosfera_processing_zone, create_gcs_dadosfera_curated_zone] >> upload_local_file >> gcs_sync_trips_landing_to_processing_zone >> [list_files_landing_zone, list_files_processing_zone] >> end
+start >> [create_gcs_dadosfera_landing_zone, create_gcs_dadosfera_processing_zone, create_gcs_dadosfera_curated_zone] >> upload_local_file >> gcs_sync_trips_landing_to_processing_zone >> [list_files_landing_zone, list_files_processing_zone] >> create_dataproc_cluster >> end
 # [END task sequence]
