@@ -7,7 +7,7 @@
 # sync files from dadosfera-landing-zone to dadosfera-processing-zone [GCSSynchronizeBucketsOperator]
 # list objects on the processing zone [GCSListObjectsOperator]
 # create google cloud dataproc cluster - spark engine [DataprocCreateClusterOperator]
-# submit pyspark job top google cloud dataproc cluster [DataprocSubmitPySparkJobOperator]
+# submit pyspark job top google cloud dataproc cluster [DataprocSubmitJobOperator]
 # configure sensor to guarantee completeness of pyspark job [DataprocJobSensor]
 # create dataset on bigquery [BigQueryCreateEmptyDatasetOperator]
 # verify count of rows (if no null) [BigQueryCheckOperator]
@@ -24,7 +24,7 @@ from airflow.operators.python import PythonOperator
 from airflow.contrib.operators.gcs_operator import GoogleCloudStorageCreateBucketOperator
 from airflow.providers.google.cloud.transfers.local_to_gcs import LocalFilesystemToGCSOperator
 from airflow.providers.google.cloud.operators.gcs import GCSSynchronizeBucketsOperator, GCSListObjectsOperator, GCSDeleteBucketOperator
-from airflow.providers.google.cloud.operators.dataproc import DataprocCreateClusterOperator, DataprocSubmitPySparkJobOperator, DataprocDeleteClusterOperator
+from airflow.providers.google.cloud.operators.dataproc import DataprocCreateClusterOperator, DataprocSubmitJobOperator, DataprocDeleteClusterOperator
 from airflow.providers.google.cloud.sensors.dataproc import DataprocJobSensor
 from airflow.providers.google.cloud.operators.bigquery import BigQueryCreateEmptyDatasetOperator, BigQueryCheckOperator
 from airflow.providers.google.cloud.transfers.gcs_to_bigquery import GCSToBigQueryOperator
@@ -34,12 +34,16 @@ from dadosfera_case.gcs_loader import upload_trips_files_to_gcs
 
 
 # [START import variables]
+PROJECT_ID = Variable.get("dadosfera_project_id")
 LANDING_BUCKET_ZONE = Variable.get("dadosfera_landing_zone_bucket")
 PROCESSING_BUCKET_ZONE = Variable.get("dadosfera_processing_zone_bucket")
 CURATED_BUCKET_ZONE = Variable.get("dadosfera_curated_zone_bucket")
-DADOSFERA_CODE_REPOSITORY = Variable.get("dadosfera_code_repository")
+CODE_REPOSITORY = Variable.get("dadosfera_code_repository")
 BUCKET_LOCATION = Variable.get("dadosfera_bucket_location")
-DATAPROC_CLUSTER_LOCATION = Variable.get("dataproc_cluster_location")
+DATAPROC_CLUSTER_NAME = Variable.get("dadosfera_dataproc_cluster_name")
+LOCATION = Variable.get("dadosfera_location")
+REGION = Variable.get("dadosfera_region")
+PYSPARK_URI = Variable.get("dadosfera_pyspark_uri")
 # [END import variables]
 
 
@@ -106,7 +110,7 @@ with DAG(
     # https://airflow.apache.org/docs/apache-airflow-providers-google/stable/_modules/airflow/providers/google/cloud/operators/gcs.html
     create_gcs_dadosfera_code_repository = GoogleCloudStorageCreateBucketOperator(
         task_id="create_gcs_dadosfera_code_repository",
-        bucket_name=DADOSFERA_CODE_REPOSITORY,
+        bucket_name=CODE_REPOSITORY,
         storage_class='STANDARD',
         location=BUCKET_LOCATION,
         labels={'env': 'dev', 'team': 'airflow'},
@@ -132,7 +136,7 @@ with DAG(
         task_id="upload_scripts_to_gcs_code_repository",
         src="dags/dadosfera_case/scripts/*",
         dst="",
-        bucket=DADOSFERA_CODE_REPOSITORY,
+        bucket=CODE_REPOSITORY,
         gcp_conn_id="gcp_dadosfera"
     )
     
@@ -168,7 +172,7 @@ with DAG(
     # https://registry.astronomer.io/providers/google/modules/gcslistobjectsoperator
     list_files_code_repository = GCSListObjectsOperator(
         task_id="list_files_code_repository",
-        bucket=DADOSFERA_CODE_REPOSITORY,
+        bucket=CODE_REPOSITORY,
         gcp_conn_id="gcp_dadosfera"
     )
     
@@ -188,11 +192,29 @@ with DAG(
     }
     
     create_dataproc_cluster = DataprocCreateClusterOperator(
-        task_id="create_dataproc_clusuter",
-        cluster_name="dadosfera-spark-dp-cluser",
+        task_id="create_dataproc_cluster",
+        cluster_name=DATAPROC_CLUSTER_NAME,
         cluster_config=dataproc_cluster_config_dadosfera,
-        region='us-central1',
+        region=REGION,
         use_if_exists=True,
+        gcp_conn_id="gcp_dadosfera"
+    )
+    
+    # submit spark job - [pyspark] file
+    # https://registry.astronomer.io/providers/google/modules/dataprocsubmitjoboperator
+    
+    job_pyspark_etl_dadosfera = {
+        "reference": {"project_id": PROJECT_ID},
+        "placement": {"cluster_name": DATAPROC_CLUSTER_NAME},
+        "pyspark_job": {"main_python_file_uri": PYSPARK_URI},
+    }
+    
+    pyspark_job_submit = DataprocSubmitJobOperator(
+        task_id="pyspark_job_submit",
+        project_id=PROJECT_ID,
+        location=LOCATION,
+        job=job_pyspark_etl_dadosfera,
+        asynchronous=True,
         gcp_conn_id="gcp_dadosfera"
     )
     
@@ -203,5 +225,7 @@ with DAG(
 start >> [create_gcs_dadosfera_landing_zone, create_gcs_dadosfera_processing_zone, create_gcs_dadosfera_curated_zone, create_gcs_dadosfera_code_repository]
 create_gcs_dadosfera_code_repository >>  upload_scripts_to_gcs_code_repository >> list_files_code_repository
 create_gcs_dadosfera_landing_zone >> upload_data_trips_to_landing_bucket_zone >> [list_files_landing_zone, gcs_sync_trips_landing_to_processing_zone]
-gcs_sync_trips_landing_to_processing_zone >> [list_files_processing_zone, create_dataproc_cluster] >> end
+gcs_sync_trips_landing_to_processing_zone >> [list_files_processing_zone, create_dataproc_cluster]
+create_dataproc_cluster >> pyspark_job_submit >> end
 # [END task sequence]
+
