@@ -22,6 +22,7 @@ from datetime import datetime
 from airflow.models import Variable
 from airflow.operators.python import PythonOperator
 from airflow.contrib.operators.gcs_operator import GoogleCloudStorageCreateBucketOperator
+from airflow.providers.google.cloud.transfers.local_to_gcs import LocalFilesystemToGCSOperator
 from airflow.providers.google.cloud.operators.gcs import GCSSynchronizeBucketsOperator, GCSListObjectsOperator, GCSDeleteBucketOperator
 from airflow.providers.google.cloud.operators.dataproc import DataprocCreateClusterOperator, DataprocSubmitPySparkJobOperator, DataprocDeleteClusterOperator
 from airflow.providers.google.cloud.sensors.dataproc import DataprocJobSensor
@@ -114,7 +115,7 @@ with DAG(
     
     # transfer local data to landing bucket zone - dadosfera-landing-zone
     # https://airflow.apache.org/docs/apache-airflow/stable/_api/airflow/operators/python/index.html#airflow.operators.python.PythonOperator
-    upload_local_file = PythonOperator(
+    upload_data_trips_to_landing_bucket_zone = PythonOperator(
         task_id='transfer_data_trips_to_landing_bucket_zone',
         python_callable=upload_trips_files_to_gcs,
         provide_context=True,
@@ -124,6 +125,17 @@ with DAG(
             "dadosfera_service_account":Variable.get("dadosfera_sa_secret")
         }
     )
+    
+    # transfer local script to dadosfera code repository - dadosfera-code-reposiory
+    # https://registry.astronomer.io/providers/google/modules/localfilesystemtogcsoperator
+    upload_scripts_to_gcs_code_repository = LocalFilesystemToGCSOperator(
+        task_id="upload_scripts_to_gcs_code_repository",
+        src="dags/dadosfera_case/scripts/*",
+        dst="",
+        bucket=DADOSFERA_CODE_REPOSITORY,
+        gcp_conn_id="gcp_dadosfera"
+    )
+    
     # sync files from one bucket to another bucket - dadosfera-landing-zone to dadosfera-processing-zone
     # https://registry.astronomer.io/providers/google/modules/gcssynchronizebucketsoperator
     gcs_sync_trips_landing_to_processing_zone = GCSSynchronizeBucketsOperator(
@@ -180,5 +192,7 @@ with DAG(
 # [END set tasks]
 
 # [START task sequence]
-start >> [create_gcs_dadosfera_landing_zone, create_gcs_dadosfera_processing_zone, create_gcs_dadosfera_curated_zone, create_gcs_dadosfera_code_repository] >> upload_local_file >> gcs_sync_trips_landing_to_processing_zone >> [list_files_landing_zone, list_files_processing_zone] >> create_dataproc_cluster >> end
+start >> [create_gcs_dadosfera_landing_zone, create_gcs_dadosfera_processing_zone, create_gcs_dadosfera_curated_zone, create_gcs_dadosfera_code_repository]
+create_gcs_dadosfera_code_repository >>  upload_scripts_to_gcs_code_repository >> gcs_sync_trips_landing_to_processing_zone >> [list_files_landing_zone, list_files_processing_zone] >> create_dataproc_cluster >> end
+create_gcs_dadosfera_landing_zone >> upload_data_trips_to_landing_bucket_zone >> gcs_sync_trips_landing_to_processing_zone >> [list_files_landing_zone, list_files_processing_zone] >> create_dataproc_cluster >> end
 # [END task sequence]
