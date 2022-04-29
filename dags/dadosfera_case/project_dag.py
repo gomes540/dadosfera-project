@@ -164,6 +164,14 @@ with DAG(
         gcp_conn_id="gcp_dadosfera"
     )
     
+    # list files inside of gcs bucket - dadosfera-code-repository
+    # https://registry.astronomer.io/providers/google/modules/gcslistobjectsoperator
+    list_files_code_repository = GCSListObjectsOperator(
+        task_id="list_files_code_repository",
+        bucket=DADOSFERA_CODE_REPOSITORY,
+        gcp_conn_id="gcp_dadosfera"
+    )
+    
     # Create google dataproc cluster - [spark engine]
     # https://registry.astronomer.io/providers/google/modules/dataproccreateclusteroperator
     dataproc_cluster_config_dadosfera = {
@@ -193,6 +201,7 @@ with DAG(
 
 # [START task sequence]
 start >> [create_gcs_dadosfera_landing_zone, create_gcs_dadosfera_processing_zone, create_gcs_dadosfera_curated_zone, create_gcs_dadosfera_code_repository]
-create_gcs_dadosfera_code_repository >>  upload_scripts_to_gcs_code_repository >> gcs_sync_trips_landing_to_processing_zone >> [list_files_landing_zone, list_files_processing_zone] >> create_dataproc_cluster >> end
-create_gcs_dadosfera_landing_zone >> upload_data_trips_to_landing_bucket_zone >> gcs_sync_trips_landing_to_processing_zone >> [list_files_landing_zone, list_files_processing_zone] >> create_dataproc_cluster >> end
+create_gcs_dadosfera_code_repository >>  upload_scripts_to_gcs_code_repository >> list_files_code_repository
+create_gcs_dadosfera_landing_zone >> upload_data_trips_to_landing_bucket_zone >> [list_files_landing_zone, gcs_sync_trips_landing_to_processing_zone]
+gcs_sync_trips_landing_to_processing_zone >> [list_files_processing_zone, create_dataproc_cluster] >> end
 # [END task sequence]
