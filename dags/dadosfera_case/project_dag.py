@@ -196,7 +196,6 @@ with DAG(
         cluster_name=DATAPROC_CLUSTER_NAME,
         cluster_config=dataproc_cluster_config_dadosfera,
         region=REGION,
-        use_if_exists=True,
         gcp_conn_id="gcp_dadosfera"
     )
     
@@ -218,6 +217,16 @@ with DAG(
         gcp_conn_id="gcp_dadosfera"
     )
     
+    # monitor google cloud dataproc sensor status of job execution
+    # https://registry.astronomer.io/providers/google/modules/dataprocjobsensor
+    dataproc_job_sensor = DataprocJobSensor(
+        task_id="dataproc_job_sensor",
+        dataproc_job_id=pyspark_job_submit.output,
+        region=REGION,
+        wait_timeout=10,
+        gcp_conn_id="gcp_dadosfera"
+    )
+    
 
 # [END set tasks]
 
@@ -226,6 +235,6 @@ start >> [create_gcs_dadosfera_landing_zone, create_gcs_dadosfera_processing_zon
 create_gcs_dadosfera_code_repository >>  upload_scripts_to_gcs_code_repository >> list_files_code_repository
 create_gcs_dadosfera_landing_zone >> upload_data_trips_to_landing_bucket_zone >> [list_files_landing_zone, gcs_sync_trips_landing_to_processing_zone]
 gcs_sync_trips_landing_to_processing_zone >> [list_files_processing_zone, create_dataproc_cluster]
-create_dataproc_cluster >> pyspark_job_submit >> end
+create_dataproc_cluster >> pyspark_job_submit >> dataproc_job_sensor >> end
 # [END task sequence]
 
