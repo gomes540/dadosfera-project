@@ -44,6 +44,7 @@ DATAPROC_CLUSTER_NAME = Variable.get("dadosfera_dataproc_cluster_name")
 LOCATION = Variable.get("dadosfera_location")
 REGION = Variable.get("dadosfera_region")
 PYSPARK_URI = Variable.get("dadosfera_pyspark_uri")
+BQ_DATASET_NAME = Variable.get("dadosfera_bq_dataset_name")
 # [END import variables]
 
 
@@ -227,6 +228,14 @@ with DAG(
         gcp_conn_id="gcp_dadosfera"
     )
     
+    # create dataset for google bigquery engine
+    # https://registry.astronomer.io/providers/google/modules/bigquerycreateemptydatasetoperator
+    bq_create_dataset_dadosfera = BigQueryCreateEmptyDatasetOperator(
+        task_id="bq_create_dataset_dadosfera",
+        dataset_id=BQ_DATASET_NAME,
+        gcp_conn_id="gcp_dadosfera"
+    )
+    
 
 # [END set tasks]
 
@@ -235,6 +244,6 @@ start >> [create_gcs_dadosfera_landing_zone, create_gcs_dadosfera_processing_zon
 create_gcs_dadosfera_code_repository >>  upload_scripts_to_gcs_code_repository >> list_files_code_repository
 create_gcs_dadosfera_landing_zone >> upload_data_trips_to_landing_bucket_zone >> [list_files_landing_zone, gcs_sync_trips_landing_to_processing_zone]
 gcs_sync_trips_landing_to_processing_zone >> [list_files_processing_zone, create_dataproc_cluster]
-create_dataproc_cluster >> pyspark_job_submit >> dataproc_job_sensor >> end
+create_dataproc_cluster >> pyspark_job_submit >> dataproc_job_sensor >> bq_create_dataset_dadosfera >> end
 # [END task sequence]
 
