@@ -125,7 +125,7 @@ with DAG(
     # transfer local data to landing bucket zone - dadosfera-landing-zone
     # https://airflow.apache.org/docs/apache-airflow/stable/_api/airflow/operators/python/index.html#airflow.operators.python.PythonOperator
     upload_data_trips_to_landing_bucket_zone = PythonOperator(
-        task_id='transfer_data_trips_to_landing_bucket_zone',
+        task_id='upload_data_trips_to_landing_bucket_zone',
         python_callable=upload_trips_files_to_gcs,
         provide_context=True,
         op_kwargs={
@@ -133,6 +133,26 @@ with DAG(
             "bucket":LANDING_BUCKET_ZONE,
             "dadosfera_service_account":Variable.get("dadosfera_sa_secret")
         }
+    )
+    
+    # transfer local vendor_lookup to landing bucket zone - dadosfera-landing-zone
+    # https://registry.astronomer.io/providers/google/modules/localfilesystemtogcsoperator
+    upload_vendor_data_to_gcs_landing_zone = LocalFilesystemToGCSOperator(
+        task_id="upload_vendor_data_to_gcs_landing_zone",
+        src="dags/dadosfera_case/data/vendor/*",
+        dst="vendor/",
+        bucket=LANDING_BUCKET_ZONE,
+        gcp_conn_id="gcp_dadosfera"
+    )
+    
+    # transfer local payment_lookup to landing bucket zone - dadosfera-landing-zone
+    # https://registry.astronomer.io/providers/google/modules/localfilesystemtogcsoperator
+    upload_payment_data_to_gcs_landing_zone = LocalFilesystemToGCSOperator(
+        task_id="upload_payment_data_to_gcs_landing_zone",
+        src="dags/dadosfera_case/data/payment/*",
+        dst="payment/",
+        bucket=LANDING_BUCKET_ZONE,
+        gcp_conn_id="gcp_dadosfera"
     )
     
     # transfer local script to dadosfera code repository - dadosfera-code-reposiory
@@ -245,6 +265,7 @@ with DAG(
 # [START task sequence]
 start >> [create_gcs_dadosfera_landing_zone, create_gcs_dadosfera_processing_zone, create_gcs_dadosfera_curated_zone, create_gcs_dadosfera_code_repository]
 create_gcs_dadosfera_code_repository >>  upload_scripts_to_gcs_code_repository >> list_files_code_repository
+create_gcs_dadosfera_landing_zone >> [upload_vendor_data_to_gcs_landing_zone, upload_payment_data_to_gcs_landing_zone]
 create_gcs_dadosfera_landing_zone >> upload_data_trips_to_landing_bucket_zone >> [list_files_landing_zone, gcs_sync_trips_landing_to_processing_zone]
 gcs_sync_trips_landing_to_processing_zone >> [list_files_processing_zone, create_dataproc_cluster]
 create_dataproc_cluster >> pyspark_job_submit >> dataproc_job_sensor >> bq_create_dataset_dadosfera >> end

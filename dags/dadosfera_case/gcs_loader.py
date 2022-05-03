@@ -5,7 +5,7 @@ import json
 
 
 def upload_trips_files_to_gcs(project_id: str, bucket: str, dadosfera_service_account: dict) -> None:
-    file_path_list = glob.glob("dags/dadosfera_case/data/*")
+    file_path_list = glob.glob("dags/dadosfera_case/data/trips/*")
     filename_list = [file_pah.split('/')[-1] for file_pah in file_path_list]
     files_to_upload = list(zip(file_path_list, filename_list))
     print(files_to_upload)
