@@ -202,7 +202,6 @@ with DAG(
     
     # submit spark job - [pyspark] file
     # https://registry.astronomer.io/providers/google/modules/dataprocsubmitjoboperator
-    
     job_pyspark_etl_dadosfera = {
         "reference": {"project_id": PROJECT_ID},
         "placement": {"cluster_name": DATAPROC_CLUSTER_NAME},
