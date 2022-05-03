@@ -165,7 +165,7 @@ with DAG(
         gcp_conn_id="gcp_dadosfera"
     )
     
-    # sync files from one bucket to another bucket - dadosfera-landing-zone to dadosfera-processing-zone
+    # sync files from one bucket to another bucket - dadosfera-landing-zone (trips folder) to dadosfera-processing-zone (trips folder)
     # https://registry.astronomer.io/providers/google/modules/gcssynchronizebucketsoperator
     gcs_sync_trips_landing_to_processing_zone = GCSSynchronizeBucketsOperator(
         task_id="gcs_sync_trips_landing_to_processing_zone",
@@ -173,6 +173,30 @@ with DAG(
         source_object="trips/",
         destination_bucket=PROCESSING_BUCKET_ZONE,
         destination_object="trips/",
+        allow_overwrite=True,
+        gcp_conn_id="gcp_dadosfera"
+    )
+    
+    # sync files from one bucket to another bucket - dadosfera-landing-zone (vendor folder) to dadosfera-processing-zone (vendor folder)
+    # https://registry.astronomer.io/providers/google/modules/gcssynchronizebucketsoperator
+    gcs_sync_vendor_landing_to_processing_zone = GCSSynchronizeBucketsOperator(
+        task_id="gcs_sync_vendor_landing_to_processing_zone",
+        source_bucket=LANDING_BUCKET_ZONE,
+        source_object="vendor/",
+        destination_bucket=PROCESSING_BUCKET_ZONE,
+        destination_object="vendor/",
+        allow_overwrite=True,
+        gcp_conn_id="gcp_dadosfera"
+    )
+    
+    # sync files from one bucket to another bucket - dadosfera-landing-zone (payment folder) to dadosfera-processing-zone (payment folder)
+    # https://registry.astronomer.io/providers/google/modules/gcssynchronizebucketsoperator
+    gcs_sync_payment_landing_to_processing_zone = GCSSynchronizeBucketsOperator(
+        task_id="gcs_sync_payment_landing_to_processing_zone",
+        source_bucket=LANDING_BUCKET_ZONE,
+        source_object="payment/",
+        destination_bucket=PROCESSING_BUCKET_ZONE,
+        destination_object="payment/",
         allow_overwrite=True,
         gcp_conn_id="gcp_dadosfera"
     )
@@ -265,9 +289,7 @@ with DAG(
 # [START task sequence]
 start >> [create_gcs_dadosfera_landing_zone, create_gcs_dadosfera_processing_zone, create_gcs_dadosfera_curated_zone, create_gcs_dadosfera_code_repository]
 create_gcs_dadosfera_code_repository >>  upload_scripts_to_gcs_code_repository >> list_files_code_repository
-create_gcs_dadosfera_landing_zone >> [upload_vendor_data_to_gcs_landing_zone, upload_payment_data_to_gcs_landing_zone]
-create_gcs_dadosfera_landing_zone >> upload_data_trips_to_landing_bucket_zone >> [list_files_landing_zone, gcs_sync_trips_landing_to_processing_zone]
-gcs_sync_trips_landing_to_processing_zone >> [list_files_processing_zone, create_dataproc_cluster]
-create_dataproc_cluster >> pyspark_job_submit >> dataproc_job_sensor >> bq_create_dataset_dadosfera >> end
-# [END task sequence]
+create_gcs_dadosfera_landing_zone >> [upload_vendor_data_to_gcs_landing_zone, upload_payment_data_to_gcs_landing_zone, upload_data_trips_to_landing_bucket_zone]
+[upload_vendor_data_to_gcs_landing_zone, upload_payment_data_to_gcs_landing_zone, upload_data_trips_to_landing_bucket_zone] >> list_files_landing_zone >> [gcs_sync_trips_landing_to_processing_zone, gcs_sync_vendor_landing_to_processing_zone, gcs_sync_payment_landing_to_processing_zone] >> list_files_processing_zone >> create_dataproc_cluster>> pyspark_job_submit >> dataproc_job_sensor >> bq_create_dataset_dadosfera >> end
+# # [END task sequence]
 
