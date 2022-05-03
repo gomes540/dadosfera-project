@@ -1,17 +1,21 @@
 # [START documentation]
-# set up connectivity from airflow to gcp using [key] in json format
-# create new bucket - dadosfera-data-lake [GCSCreateBucketOperator] 
-# create new bucket - dadosfera-landing-zone [GCSCreateBucketOperator]
-# create new bucket - dadosfera-processing-zone [GCSCreateBucketOperator]
-# create new bucket - dadosfera-curated-zone [GCSCreateBucketOperator]
+# set up connectivity from airflow to gcp using [key] in json format 
+# create new bucket - dadosfera-landing-zone [GoogleCloudStorageCreateBucketOperator]
+# create new bucket - dadosfera-processing-zone [GoogleCloudStorageCreateBucketOperator]
+# create new bucket - dadosfera-curated-zone [GoogleCloudStorageCreateBucketOperator]
+# create new bucket - dadosfera-code-repository [GoogleCloudStorageCreateBucketOperator]
+# transfer local file to landing zone [PythonOperator]
+# transfer local script to code repository [LocalFilesystemToGCSOperator]
 # sync files from dadosfera-landing-zone to dadosfera-processing-zone [GCSSynchronizeBucketsOperator]
 # list objects on the processing zone [GCSListObjectsOperator]
+# list objects on the landing zone [GCSListObjectsOperator]
+# list objects on the code repository [GCSListObjectsOperator]
 # create google cloud dataproc cluster - spark engine [DataprocCreateClusterOperator]
 # submit pyspark job top google cloud dataproc cluster [DataprocSubmitJobOperator]
 # configure sensor to guarantee completeness of pyspark job [DataprocJobSensor]
 # create dataset on bigquery [BigQueryCreateEmptyDatasetOperator]
 # verify count of rows (if no null) [BigQueryCheckOperator]
-# deletet google cloud dataproc cluster [DataprocDeleteClusterOperator]
+# delete google cloud dataproc cluster [DataprocDeleteClusterOperator]
 # delete bucket dadosfera-processing-zone [GCSDeleteBucketOperator]
 # [END documentation]
 
@@ -161,7 +165,7 @@ with DAG(
         gcp_conn_id="gcp_dadosfera"
     )
     
-    # list files inside of gcs bucket - processing zone
+    # list files inside of gcs bucket - landing zone
     # https://registry.astronomer.io/providers/google/modules/gcslistobjectsoperator
     list_files_landing_zone = GCSListObjectsOperator(
         task_id="list_files_landing_zone",
